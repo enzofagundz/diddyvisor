@@ -6,6 +6,22 @@ Aplicativo de divisão de contas domésticas em Laravel 13, Filament 5 e Postgre
 
 O site está configurado no lerd em **http://diddyvisor.test/app**. O envio é síncrono; não é necessário iniciar um worker de fila.
 
+O banco local já usa PostgreSQL no serviço `lerd-postgres`, com o banco `diddyvisor`. Os testes usam `diddyvisor_testing`. A configuração padrão da aplicação e `.env.example` usam `pgsql`.
+
+## PostgreSQL no Laravel Cloud
+
+O CLI está instalado como dependência de desenvolvimento. Para autenticar no navegador:
+
+```sh
+./vendor/bin/cloud auth -n
+```
+
+No ambiente de produção do Laravel Cloud, anexe um banco PostgreSQL como banco padrão. O Cloud injeta as variáveis de conexão. Remova variáveis personalizadas antigas de banco que sobrescrevam os valores injetados; não copie host, usuário ou senha do lerd para produção.
+
+Se a produção já tiver dados em outro banco, preserve um backup e migre os dados antes de trocar a conexão. `php artisan migrate --force` cria ou atualiza o esquema; não transfere dados entre bancos.
+
+Após configurar o banco, faça um novo deploy com `php artisan migrate --force` no comando de deploy. A aplicação requer a extensão `pdo_pgsql`. A criação de recursos pagos, a troca do banco de produção e o deploy dependem da confirmação do ambiente de destino.
+
 ## Envio de e-mail com Resend
 
 A aplicação utiliza o transporte Resend nativo do Laravel 13, com `resend/resend-php`. Convites, confirmação de e-mail e redefinição de senha usam a mesma configuração. Não há webhook ou integração paralela.
