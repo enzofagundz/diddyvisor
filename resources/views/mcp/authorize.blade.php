@@ -38,7 +38,7 @@
 </head>
 <body>
 <div class="card">
-    <img class="logo" src="{{ asset('images/diddyvisor.png') }}" alt="{{ config('app.name') }}">
+    <img class="logo" src="{{ asset('images/diddy/diddy-avatar.png') }}" alt="{{ config('app.name') }}">
 
     <h1>Autorizar {{ $client->name }}</h1>
     <p class="muted">Esta aplicação poderá acessar suas casas, contas e pagamentos pelo servidor MCP.</p>

@@ -42,7 +42,6 @@ class AppPanelProvider extends PanelProvider
             ->font('Inter', provider: LocalFontProvider::class)
             ->favicon(asset('images/diddy/favicon.ico'))
             ->renderHook(PanelsRenderHook::HEAD_END, fn () => view('filament.components.head-meta'))
-            ->renderHook(PanelsRenderHook::SIMPLE_PAGE_START, fn () => view('filament.components.auth-mascot'))
             ->login()
             ->registration(Register::class)
             ->passwordReset()

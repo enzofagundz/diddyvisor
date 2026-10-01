@@ -93,8 +93,6 @@ body, .fi-body, .fi-simple-layout { background: var(--dv-background); color: var
 .dv-note { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--dv-border); }
 .dv-note p { margin: 0 0 12px; color: var(--dv-muted); font-size: 13px; line-height: 1.6; }
 .dv-card code { padding: 1px 6px; background: #F5EBDE; border: 1px solid var(--dv-border); border-radius: 6px; font-size: 12px; }
-.dv-auth-mascot { display: flex; justify-content: center; margin-bottom: 8px; }
-.dv-auth-mascot img { width: 168px; height: 168px; object-fit: contain; }
 .dv-empty { display: grid; justify-items: center; gap: 4px; padding: 8px 0 4px; text-align: center; }
 .dv-empty-art { width: 200px; height: 200px; object-fit: contain; }
 .dv-empty-heading { font: 800 18px 'Nunito Sans', sans-serif; color: var(--dv-text); margin: 0; }
@@ -112,6 +110,5 @@ body, .fi-body, .fi-simple-layout { background: var(--dv-background); color: var
     .dv-invitation-card { padding: 24px; }
     .dv-card { padding: 20px; }
     .dv-guide-mascot { width: 72px; height: 72px; }
-    .dv-auth-mascot img { width: 132px; height: 132px; }
     .dv-empty-art { width: 160px; height: 160px; }
 }
