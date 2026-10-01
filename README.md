@@ -104,14 +104,26 @@ Tools: `list_houses`, `list_members`, `list_bills`, `get_bill`, `get_monthly_sum
 
 ### Deploy
 
-O Laravel Cloud tem filesystem efêmero: `php artisan passport:keys` no comando de deploy não persiste (e cada réplica teria chaves diferentes). Configure as chaves por variável de ambiente, com `\n` no lugar das quebras de linha:
+O Laravel Cloud tem filesystem efêmero, então as chaves e a sessão vão por variável de ambiente, e um comando roda uma vez por ambiente.
 
-```dotenv
-PASSPORT_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
-PASSPORT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
+**Chaves do Passport.** `php artisan passport:keys` no deploy não persiste (e cada réplica teria chaves diferentes). Gere o par localmente e cadastre o conteúdo dos arquivos, com as quebras de linha reais:
+
+```sh
+./vendor/bin/cloud environment:variables production --action=set --key=PASSPORT_PRIVATE_KEY --value="$(cat storage/oauth-private.key)" --force
+./vendor/bin/cloud environment:variables production --action=set --key=PASSPORT_PUBLIC_KEY --value="$(cat storage/oauth-public.key)" --force
 ```
 
-Gere o par localmente com `php artisan passport:keys`, copie o conteúdo de `storage/oauth-private.key` e `storage/oauth-public.key` e remova as quebras de linha (ou troque-as por `\n`). No deploy, rode `php artisan migrate --force`.
+Enviar o valor com `\n` literal pode chegar misturado (quebras reais e literais no mesmo valor) e o Passport recusa a chave com "Invalid key supplied".
+
+**Sessão.** Ambiente novo do Laravel Cloud nasce com `SESSION_DRIVER=cookie`. A autorização OAuth guarda a requisição na sessão, que não cabe no cookie, e o autorizar devolve 403. Defina `SESSION_DRIVER=database`; a tabela `sessions` já está nas migrações.
+
+**Token pessoal.** A página Acesso MCP gera tokens pelo Passport; crie o client uma vez por ambiente:
+
+```sh
+php artisan passport:client --personal --name=DiddyVisor --no-interaction
+```
+
+No deploy, rode `php artisan migrate --force`.
 
 ## Regras principais
 
