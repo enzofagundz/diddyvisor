@@ -82,7 +82,7 @@ body, .fi-body, .fi-simple-layout { background: var(--dv-background); color: var
 .dv-card h2 { font: 800 20px 'Nunito Sans', sans-serif; color: var(--dv-text); margin: 0 0 4px; }
 .dv-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 20px; }
 .dv-card-head p { color: var(--dv-muted); font-size: 13px; margin: 0; }
-.dv-guide-mascot { width: 72px; height: 72px; object-fit: contain; flex-shrink: 0; mix-blend-mode: multiply; }
+.dv-guide-mascot { width: 96px; height: 96px; object-fit: contain; flex-shrink: 0; mix-blend-mode: multiply; }
 .dv-steps { display: grid; gap: 20px; list-style: none; margin: 0; padding: 0; }
 .dv-step { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; }
 .dv-step-index { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; background: var(--dv-brand); color: #fff; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -93,11 +93,25 @@ body, .fi-body, .fi-simple-layout { background: var(--dv-background); color: var
 .dv-note { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--dv-border); }
 .dv-note p { margin: 0 0 12px; color: var(--dv-muted); font-size: 13px; line-height: 1.6; }
 .dv-card code { padding: 1px 6px; background: #F5EBDE; border: 1px solid var(--dv-border); border-radius: 6px; font-size: 12px; }
+.dv-auth-mascot { display: flex; justify-content: center; margin-bottom: 8px; }
+.dv-auth-mascot img { width: 168px; height: 168px; object-fit: contain; }
+.dv-empty { display: grid; justify-items: center; gap: 4px; padding: 8px 0 4px; text-align: center; }
+.dv-empty-art { width: 200px; height: 200px; object-fit: contain; }
+.dv-empty-heading { font: 800 18px 'Nunito Sans', sans-serif; color: var(--dv-text); margin: 0; }
+.dv-empty-text { color: var(--dv-muted); font-size: 13px; margin: 0; }
+.dv-invite-empty { display: grid; justify-items: center; gap: 8px; padding: 16px 0; color: var(--dv-muted); text-align: center; }
+.dv-invite-empty img { width: 132px; height: 132px; object-fit: contain; }
+.dv-all-paid { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 16px; padding: 12px 20px; background: #EDF6EF; border: 1px solid #BFDCC7; border-radius: 12px; }
+.dv-all-paid img { width: 96px; height: 96px; object-fit: contain; }
+.dv-all-paid strong { display: block; font-size: 14px; }
+.dv-all-paid span { color: var(--dv-muted); font-size: 13px; }
 @media (max-width: 640px) {
     .dv-overview { grid-template-columns: 1fr 1fr; gap: 24px 16px; }
     .dv-overview strong { font-size: 22px; }
     .dv-month { padding: 12px; }
     .dv-invitation-card { padding: 24px; }
     .dv-card { padding: 20px; }
-    .dv-guide-mascot { width: 56px; height: 56px; }
+    .dv-guide-mascot { width: 72px; height: 72px; }
+    .dv-auth-mascot img { width: 132px; height: 132px; }
+    .dv-empty-art { width: 160px; height: 160px; }
 }
