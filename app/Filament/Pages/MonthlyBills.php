@@ -255,7 +255,11 @@ class MonthlyBills extends Page implements HasTable
 
         return $table->query($house->bills()->where('competence', $this->month.'-01')->with('shares')->getQuery())
             ->columns($columns)->defaultSort(fn ($query) => $query->orderBy('due_date')->orderBy('id'))->paginated(false)
-            ->emptyStateHeading('Ainda sem contas neste mês')->emptyStateDescription('Adicione uma conta ou copie o mês anterior para começar.')
+            ->emptyState(view('filament.components.empty-state', [
+                'image' => 'images/diddy/diddy-sem-contas.png',
+                'heading' => 'Ainda sem contas neste mês',
+                'description' => 'Adicione uma conta ou copie o mês anterior para começar.',
+            ]))
             ->filters([
                 SelectFilter::make('status')->label('Status')->options(BillStatus::class),
                 Filter::make('overdue')->label('Atrasadas')->query(fn ($query) => $query->where('due_date', '<', now('America/Sao_Paulo')->toDateString())->where('status', '!=', BillStatus::Paid)),

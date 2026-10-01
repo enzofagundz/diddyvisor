@@ -9,6 +9,15 @@
         <div><span>Não quitadas</span><strong>{{ $summary['overview']->pending }}</strong></div>
         <div><span>Pagas</span><strong>{{ $summary['overview']->paid }}</strong></div>
     </section>
+    @if ((int) $summary['overview']->count > 0 && (int) $summary['overview']->pending === 0)
+        <section class="dv-all-paid" aria-label="Mês quitado">
+            <img src="{{ asset('images/diddy/diddy-pago.png') }}" alt="" width="84" height="84">
+            <div>
+                <strong>Tudo quitado neste mês.</strong>
+                <span>Cada parte foi paga. Bom trabalho, {{ auth()->user()->name }}!</span>
+            </div>
+        </section>
+    @endif
     <nav class="dv-months" aria-label="Competência mensal">
         @foreach ($this->months() as $key => $label)
             <button type="button" wire:click="selectMonth('{{ $key }}')" wire:loading.attr="disabled" @class(['dv-month', 'dv-month-selected' => $month === $key]) aria-current="{{ $month === $key ? 'date' : 'false' }}">{{ $label }}</button>
