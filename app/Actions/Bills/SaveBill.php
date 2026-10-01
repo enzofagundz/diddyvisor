@@ -69,8 +69,8 @@ class SaveBill
                     throw ValidationException::withMessages(['participants' => 'Selecione membros ativos desta casa.']);
                 }
             }
-            $bill ??= $house->bills()->make(['competence' => $month.'-01']);
-            $bill->fill(['name' => trim($input['name']), 'due_date' => $input['due_date'], 'total_cents' => $total])->save();
+            $bill ??= $house->bills()->make();
+            $bill->fill(['name' => trim($input['name']), 'competence' => $month.'-01', 'due_date' => $input['due_date'], 'total_cents' => $total])->save();
             if (! $existing || $financialChanged) {
                 $bill->shares()->delete();
                 foreach ($amounts as $id => $amount) {

@@ -123,20 +123,24 @@ class MonthlyBills extends Page implements HasTable
                 $this->resetTable();
             }), Action::make('createBill')->label('Adicionar conta')->visible(fn () => $this->house()->isAdmin(auth()->user()))
             ->schema($this->billFields())->action(function (array $data) {
-                $bill = $this->saveBill($data);
-                if ($this->month !== $bill->competence->format('Y-m')) {
-                    $this->month = $bill->competence->format('Y-m');
-                    $this->tableSearch = '';
-                    $this->resetTableFiltersForm();
-                }
-                $this->resetTable();
+                $this->followBillMonth($this->saveBill($data));
             })];
+    }
+
+    private function followBillMonth(Bill $bill): void
+    {
+        if ($this->month !== $bill->competence->format('Y-m')) {
+            $this->month = $bill->competence->format('Y-m');
+            $this->tableSearch = '';
+            $this->resetTableFiltersForm();
+        }
+        $this->resetTable();
     }
 
     private function saveBill(array $data, ?Bill $record = null): Bill
     {
         try {
-            $month = $record?->competence->format('Y-m') ?? ($data['competence'] ?? $this->month);
+            $month = $data['competence'] ?? $record?->competence->format('Y-m') ?? $this->month;
             if (! is_string($month) || ! array_key_exists($month, $this->months() + $this->history())) {
                 throw ValidationException::withMessages(['competence' => 'Selecione um mês disponível nesta casa.']);
             }
@@ -160,16 +164,45 @@ class MonthlyBills extends Page implements HasTable
             TextInput::make('name')->label('Conta')->required()->maxLength(255),
             Select::make('competence')->label('Mês da conta')->required()->live()->default(fn () => $this->month)
                 ->options(fn () => collect($this->months() + $this->history())->mapWithKeys(fn ($label, $month) => [$month => ucfirst(CarbonImmutable::parse($month.'-01')->locale('pt_BR')->translatedFormat('F \\d\\e Y'))])->all())
-                ->disabled(fn (?Bill $record) => $record !== null)->dehydrated(fn (?Bill $record) => $record === null)
-                ->helperText(fn (?Bill $record) => $record ? 'Mês em que esta conta aparece na planilha. Não muda ao editar o vencimento.' : 'Escolha em qual mês a conta aparece na planilha. O vencimento não define esse mês.'),
+                ->disabled(fn (?Bill $record) => $record !== null)->dehydrated()
+                ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
+                    if (blank($state) || blank($due = $get('due_date')) || ! array_key_exists($state, $this->months() + $this->history())) {
+                        return;
+                    }
+                    $dueDate = CarbonImmutable::parse($due);
+                    if ($dueDate->format('Y-m') === $state) {
+                        return;
+                    }
+                    $month = CarbonImmutable::parse($state.'-01');
+                    $set('due_date', $month->day(min($dueDate->day, $month->daysInMonth))->toDateString());
+                })
+                ->helperText(fn (?Bill $record) => $record ? 'Mês em que esta conta aparece na planilha. Segue a data de vencimento.' : 'Escolha em qual mês a conta aparece na planilha. A data de vencimento acompanha este mês.'),
             DatePicker::make('due_date')->label('Data de vencimento')->required()->displayFormat('d/m/Y')->native(false)
                 ->defaultFocusedDate(fn (Get $get) => ($get('competence') ?: $this->month).'-01')
-                ->key(fn (Get $get) => 'due_date_'.($get('competence') ?: $this->month))
-                ->helperText('Selecione o dia em que a conta deve ser paga. Pode ser diferente do mês da conta.'),
+                ->live()
+                ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
+                    if (blank($state)) {
+                        return;
+                    }
+                    $month = substr($state, 0, 7);
+                    if ($get('competence') === $month || ! array_key_exists($month, $this->months() + $this->history())) {
+                        return;
+                    }
+                    $set('competence', $month);
+                })
+                ->helperText('Selecione o dia em que a conta deve ser paga. O mês da conta acompanha esta data.'),
             TextInput::make('total')->label('Valor total')->prefix('R$')->inputMode('decimal')->required()->helperText('Exemplo: 100,00. Sem separador de milhar.')->disabled(fn (?Bill $record) => $record?->shares->contains('is_paid', true) ?? false)->dehydrated()
-                ->afterContent([Action::make('splitEqually')->label('Dividir igualmente')->color('gray')
+                ->hintActions([Action::make('toggleEqualSplit')
+                    ->label(fn (Get $get) => $get('previous_shares') === null ? 'Dividir igualmente' : 'Desfazer divisão igual')
+                    ->color('gray')
                     ->visible(fn (?Bill $record) => ! ($record?->shares->contains('is_paid', true) ?? false))
                     ->action(function (Get $schemaGet, Set $schemaSet, TextInput $schemaComponent) {
+                        if ($schemaGet('previous_shares') !== null) {
+                            $schemaSet('shares', $schemaGet('previous_shares') ?? []);
+                            $schemaSet('previous_shares', null);
+
+                            return;
+                        }
                         try {
                             $total = Money::parse((string) $schemaGet('total'));
                         } catch (\InvalidArgumentException $exception) {
@@ -182,12 +215,6 @@ class MonthlyBills extends Page implements HasTable
                         $schemaSet('previous_shares', $schemaGet('shares') ?? []);
                         $schemaSet('shares', $ids->map(fn ($id, $index) => ['membership_id' => $id, 'amount' => Money::decimal(intdiv($total, $ids->count()) + ($index < $total % $ids->count() ? 1 : 0))])->all());
                     }),
-                    Action::make('undoEqualSplit')->label('Desfazer divisão igual')->color('gray')
-                        ->visible(fn (Get $schemaGet) => $schemaGet('previous_shares') !== null)
-                        ->action(function (Get $schemaGet, Set $schemaSet) {
-                            $schemaSet('shares', $schemaGet('previous_shares') ?? []);
-                            $schemaSet('previous_shares', null);
-                        }),
                 ]),
             Select::make('participants')->label('Participantes')->multiple()->required()->disabled(fn (?Bill $record) => $record?->shares->contains('is_paid', true) ?? false)->dehydrated()->options(fn (?Bill $record) => $this->house()->memberships()->with('user')->where(fn ($query) => $query->whereNull('left_at')->orWhereIn('id', $record?->shares->pluck('membership_id') ?? []))->get()->mapWithKeys(fn ($member) => [$member->id => $member->label()]))->default(fn () => $this->house()->memberships()->whereNull('left_at')->pluck('id')->all()),
             Repeater::make('shares')->label('Partes ajustadas')->default([])->disabled(fn (?Bill $record) => $record?->shares->contains('is_paid', true) ?? false)->dehydrated()->schema([
@@ -227,7 +254,7 @@ class MonthlyBills extends Page implements HasTable
         $columns[] = TextColumn::make('status')->label('Status')->badge()->description(fn (Bill $record) => $record->isOverdue() ? 'Atrasada' : null);
 
         return $table->query($house->bills()->where('competence', $this->month.'-01')->with('shares')->getQuery())
-            ->columns($columns)->defaultSort(fn ($query) => $query->orderBy('due_date')->orderBy('id'))->paginationPageOptions([25, 50, 100])
+            ->columns($columns)->defaultSort(fn ($query) => $query->orderBy('due_date')->orderBy('id'))->paginated(false)
             ->emptyStateHeading('Ainda sem contas neste mês')->emptyStateDescription('Adicione uma conta ou copie o mês anterior para começar.')
             ->filters([
                 SelectFilter::make('status')->label('Status')->options(BillStatus::class),
@@ -247,8 +274,7 @@ class MonthlyBills extends Page implements HasTable
                         'shares' => $record->shares->map(fn ($share) => ['membership_id' => $share->membership_id, 'amount' => Money::decimal($share->amount_cents)])->all(),
                     ])
                     ->action(function (Bill $record, array $data) {
-                        $this->saveBill($data, $record);
-                        $this->resetTable();
+                        $this->followBillMonth($this->saveBill($data, $record));
                     }),
             ]);
     }
