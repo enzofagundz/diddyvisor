@@ -10,7 +10,7 @@
 </head>
 <body class="dv-invitation-page">
     <main class="dv-invitation-card">
-        <img src="{{ asset('images/diddyvisor.png') }}" alt="DiddyVisor" width="100" height="100">
+        <img src="{{ asset('images/diddy/diddy-convite.png') }}" alt="Diddy abrindo um envelope com um convite" width="180" height="180">
         @if ($invitation)
             <h1>Uma casa, contas organizadas.</h1>
             <p>Você foi convidado para <strong>{{ $invitation->house->name }}</strong>.</p>

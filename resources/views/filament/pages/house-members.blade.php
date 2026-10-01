@@ -10,7 +10,7 @@
             @forelse ($this->house()->invitations()->whereNull('accepted_at')->whereNull('revoked_at')->orderByDesc('id')->get() as $invitation)
                 <div class="dv-invitation"><span>{{ $invitation->email }}</span><span>{{ $invitation->expires_at->isFuture() ? 'Aguardando aceitação' : 'Expirado' }}</span>{{ ($this->resendInvitationAction)(['id' => $invitation->id]) }}{{ ($this->revokeInvitationAction)(['id' => $invitation->id]) }}</div>
             @empty
-                <p>Nenhum convite pendente.</p>
+                <p class="dv-invite-empty"><img src="{{ asset('images/diddy/diddy-sem-convites.png') }}" alt="" width="132" height="132"><span>Nenhum convite pendente.</span></p>
             @endforelse
         </section>
     @endif
