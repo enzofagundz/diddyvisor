@@ -13,10 +13,6 @@ use Illuminate\Contracts\Auth\Authenticatable;
  */
 final class McpUserResolver
 {
-    private ?User $resolved = null;
-
-    private ?string $resolvedKey = null;
-
     public function resolve(?Authenticatable $user = null): User
     {
         if ($user instanceof User) {
@@ -24,10 +20,6 @@ final class McpUserResolver
         }
 
         $key = trim((string) config('diddyvisor.mcp.user'));
-
-        if ($this->resolved !== null && $this->resolvedKey === $key) {
-            return $this->resolved;
-        }
 
         if ($key === '') {
             throw ToolException::configuration(
@@ -46,14 +38,6 @@ final class McpUserResolver
             );
         }
 
-        $this->resolvedKey = $key;
-
-        return $this->resolved = $user;
-    }
-
-    public function forget(): void
-    {
-        $this->resolved = null;
-        $this->resolvedKey = null;
+        return $user;
     }
 }
