@@ -29,16 +29,18 @@ class MonthlyBillsTest extends TestCase
         $this->actingAs($user);
         Filament::setCurrentPanel(Filament::getPanel('app'));
         Filament::setTenant($house);
-        $split = TestAction::make('splitEqually')->schemaComponent('total');
-        $undo = TestAction::make('undoEqualSplit')->schemaComponent('total');
+        $toggle = TestAction::make('toggleEqualSplit')->schemaComponent('total');
         $page = Livewire::test(MonthlyBills::class)->mountAction('createBill')->fillForm([
             'name' => 'Divisão ajustada', 'due_date' => now()->toDateString(), 'total' => '100,01',
             'participants' => $members->pluck('id')->all(),
             'shares' => [['membership_id' => $members[0]->id, 'amount' => '90,00'], ['membership_id' => $members[1]->id, 'amount' => '10,01']],
-        ])->assertActionExists($split, fn (Action $action) => ! $action->isConfirmationRequired());
-        $page->callAction($split)->assertSchemaStateSet(function ($state) {
+        ])->assertActionExists($toggle, fn (Action $action) => ! $action->isConfirmationRequired());
+        $page->callAction($toggle)->assertSchemaStateSet(function ($state) {
             $this->assertSame(['50,01', '50,00'], array_column($state['shares'], 'amount'));
-        })->assertActionVisible($undo)->callAction($undo)->assertSchemaStateSet(['previous_shares' => null]);
+        });
+        $page->assertActionExists($toggle, fn (Action $action) => $action->getLabel() === 'Desfazer divisão igual');
+        $page->callAction($toggle)->assertSchemaStateSet(['previous_shares' => null]);
+        $page->assertActionExists($toggle, fn (Action $action) => $action->getLabel() === 'Dividir igualmente');
         $page->callMountedAction()->assertHasNoFormErrors()->assertSee('R$ 90,00')->assertSee('R$ 10,01');
     }
 
@@ -59,7 +61,7 @@ class MonthlyBillsTest extends TestCase
         $this->assertCount(0, $house->bills()->get());
     }
 
-    public function test_due_date_edit_preserves_existing_bill_month(): void
+    public function test_editing_due_date_moves_bill_month(): void
     {
         $this->withoutVite();
         $this->travelTo(Carbon::parse('2026-09-15 12:00:00', 'America/Sao_Paulo'));
@@ -69,15 +71,17 @@ class MonthlyBillsTest extends TestCase
         $this->actingAs($user);
         Filament::setCurrentPanel(Filament::getPanel('app'));
         Filament::setTenant($house);
-        $input = ['name' => 'Conta de setembro', 'due_date' => '2026-09-05', 'total' => '10,00', 'participants' => [$member->id], 'shares' => []];
+        $input = ['name' => 'Conta de setembro', 'competence' => '2026-09', 'due_date' => '2026-09-05', 'total' => '10,00', 'participants' => [$member->id], 'shares' => []];
         $page = Livewire::test(MonthlyBills::class)->callAction('createBill', data: $input);
         $bill = $house->bills()->sole();
         $page->mountAction(TestAction::make('editBill')->table($bill))->assertFormFieldIsDisabled('competence')
-            ->fillForm([...$input, 'competence' => '2026-10', 'due_date' => '2026-10-05'])->callMountedAction()->assertHasNoFormErrors()->assertSee('05/10/2026')->assertSee('Conta de setembro');
-        $this->assertSame('2026-09', $bill->fresh()->competence->format('Y-m'));
+            ->set('mountedActions.0.data.due_date', '2026-10-05')
+            ->assertFormSet(['competence' => '2026-10'], form: 'mountedActionSchema0')
+            ->callMountedAction()->assertHasNoFormErrors()->assertSet('month', '2026-10')->assertSee('05/10/2026')->assertSee('Conta de setembro');
+        $this->assertSame('2026-10', $bill->fresh()->competence->format('Y-m'));
     }
 
-    public function test_admin_selects_bill_month_in_modal_independently_of_due_date(): void
+    public function test_due_date_change_updates_bill_month(): void
     {
         $this->withoutVite();
         $this->travelTo(Carbon::parse('2026-09-15 12:00:00', 'America/Sao_Paulo'));
@@ -87,11 +91,91 @@ class MonthlyBillsTest extends TestCase
         $this->actingAs($user);
         Filament::setCurrentPanel(Filament::getPanel('app'));
         Filament::setTenant($house);
-        $page = Livewire::test(MonthlyBills::class)->mountAction('createBill')->assertFormSet(['competence' => '2026-09'], form: 'mountedActionSchema0')->assertFormFieldExists('competence')->fillForm([
-            'name' => 'Conta de outubro', 'competence' => '2026-10', 'due_date' => '2026-11-05',
-            'total' => '10,00', 'participants' => [$member->id], 'shares' => [],
-        ])->callMountedAction()->assertHasNoFormErrors()->assertSet('month', '2026-10')->assertSee('Conta de outubro')->assertSee('05/11/2026');
-        $page->call('selectMonth', '2026-09')->assertDontSee('Conta de outubro');
+
+        Livewire::test(MonthlyBills::class)->mountAction('createBill')
+            ->assertFormSet(['competence' => '2026-09'], form: 'mountedActionSchema0')
+            ->set('mountedActions.0.data.due_date', '2026-11-05')
+            ->assertFormSet(['competence' => '2026-11'], form: 'mountedActionSchema0');
+    }
+
+    public function test_month_change_moves_due_date_into_same_month(): void
+    {
+        $this->withoutVite();
+        $this->travelTo(Carbon::parse('2026-09-15 12:00:00', 'America/Sao_Paulo'));
+        $user = User::factory()->create();
+        $house = House::create(['name' => 'Casa']);
+        $house->memberships()->create(['user_id' => $user->id, 'display_name' => $user->name, 'role' => MembershipRole::Admin]);
+        $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('app'));
+        Filament::setTenant($house);
+
+        Livewire::test(MonthlyBills::class)->mountAction('createBill')
+            ->set('mountedActions.0.data.competence', '2026-12')
+            ->assertFormSet(['due_date' => null], form: 'mountedActionSchema0')
+            ->set('mountedActions.0.data.due_date', '2027-01-31')
+            ->assertFormSet(['competence' => '2027-01'], form: 'mountedActionSchema0')
+            ->set('mountedActions.0.data.competence', '2027-02')
+            ->assertFormSet(['due_date' => '2027-02-28'], form: 'mountedActionSchema0')
+            ->set('mountedActions.0.data.due_date', '2027-01-31')
+            ->set('mountedActions.0.data.competence', '2027-04')
+            ->assertFormSet(['due_date' => '2027-04-30'], form: 'mountedActionSchema0');
+    }
+
+    public function test_competence_outside_available_months_does_not_move_due_date(): void
+    {
+        $this->withoutVite();
+        $this->travelTo(Carbon::parse('2026-09-15 12:00:00', 'America/Sao_Paulo'));
+        $user = User::factory()->create();
+        $house = House::create(['name' => 'Casa']);
+        $house->memberships()->create(['user_id' => $user->id, 'display_name' => $user->name, 'role' => MembershipRole::Admin]);
+        $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('app'));
+        Filament::setTenant($house);
+
+        Livewire::test(MonthlyBills::class)->mountAction('createBill')
+            ->set('mountedActions.0.data.due_date', '2026-11-05')
+            ->set('mountedActions.0.data.competence', '2030-01')
+            ->assertFormSet(['due_date' => '2026-11-05'], form: 'mountedActionSchema0');
+    }
+
+    public function test_due_date_and_month_keep_syncing_after_repeated_changes(): void
+    {
+        $this->withoutVite();
+        $this->travelTo(Carbon::parse('2026-09-15 12:00:00', 'America/Sao_Paulo'));
+        $user = User::factory()->create();
+        $house = House::create(['name' => 'Casa']);
+        $house->memberships()->create(['user_id' => $user->id, 'display_name' => $user->name, 'role' => MembershipRole::Admin]);
+        $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('app'));
+        Filament::setTenant($house);
+
+        Livewire::test(MonthlyBills::class)->mountAction('createBill')
+            ->set('mountedActions.0.data.due_date', '2026-11-05')
+            ->assertFormSet(['competence' => '2026-11'], form: 'mountedActionSchema0')
+            ->set('mountedActions.0.data.competence', '2026-12')
+            ->assertFormSet(['due_date' => '2026-12-05'], form: 'mountedActionSchema0')
+            ->set('mountedActions.0.data.due_date', '2027-01-10')
+            ->assertFormSet(['competence' => '2027-01'], form: 'mountedActionSchema0')
+            ->set('mountedActions.0.data.competence', '2027-02')
+            ->assertFormSet(['due_date' => '2027-02-10'], form: 'mountedActionSchema0')
+            ->set('mountedActions.0.data.due_date', '2027-03-10')
+            ->assertFormSet(['competence' => '2027-03'], form: 'mountedActionSchema0');
+    }
+
+    public function test_due_date_outside_available_months_keeps_bill_month(): void
+    {
+        $this->withoutVite();
+        $this->travelTo(Carbon::parse('2026-09-15 12:00:00', 'America/Sao_Paulo'));
+        $user = User::factory()->create();
+        $house = House::create(['name' => 'Casa']);
+        $house->memberships()->create(['user_id' => $user->id, 'display_name' => $user->name, 'role' => MembershipRole::Admin]);
+        $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('app'));
+        Filament::setTenant($house);
+
+        Livewire::test(MonthlyBills::class)->mountAction('createBill')
+            ->set('mountedActions.0.data.due_date', '2030-01-05')
+            ->assertFormSet(['competence' => '2026-09'], form: 'mountedActionSchema0');
     }
 
     public function test_equal_split_rejects_invalid_money_without_server_error(): void
@@ -103,7 +187,7 @@ class MonthlyBillsTest extends TestCase
         $this->actingAs($user);
         Filament::setCurrentPanel(Filament::getPanel('app'));
         Filament::setTenant($house);
-        Livewire::test(MonthlyBills::class)->mountAction('createBill')->fillForm(['total' => 'abc'])->callAction(TestAction::make('splitEqually')->schemaComponent('total'))->assertHasErrors(['mountedActions.0.data.total']);
+        Livewire::test(MonthlyBills::class)->mountAction('createBill')->fillForm(['total' => 'abc'])->callAction(TestAction::make('toggleEqualSplit')->schemaComponent('total'))->assertHasErrors(['mountedActions.0.data.total']);
     }
 
     public function test_render_does_not_query_admin_role_for_each_payment_cell(): void
@@ -126,6 +210,22 @@ class MonthlyBillsTest extends TestCase
         });
         Livewire::test(MonthlyBills::class)->assertSee('Conta 3');
         $this->assertLessThanOrEqual(5, $roleQueries);
+    }
+
+    public function test_table_lists_every_bill_of_the_month_without_pagination(): void
+    {
+        $this->withoutVite();
+        $user = User::factory()->create();
+        $house = House::create(['name' => 'Casa']);
+        $member = $house->memberships()->create(['user_id' => $user->id, 'display_name' => $user->name, 'role' => MembershipRole::Admin]);
+        foreach (range(1, 26) as $index) {
+            app(SaveBill::class)($user, $house, now()->format('Y-m'), ['name' => 'Conta '.$index, 'due_date' => now()->toDateString(), 'total' => '1,00', 'participants' => [$member->id], 'shares' => []]);
+        }
+        $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('app'));
+        Filament::setTenant($house);
+
+        Livewire::test(MonthlyBills::class)->assertSee('Conta 26');
     }
 
     public function test_zero_share_has_no_payment_checkbox(): void
@@ -175,7 +275,7 @@ class MonthlyBillsTest extends TestCase
             'participants' => $members->pluck('id')->all(),
             'shares' => [['membership_id' => $members[0]->id, 'amount' => '90,00'], ['membership_id' => $members[1]->id, 'amount' => '10,01']],
         ]);
-        $page->callAction(TestAction::make('splitEqually')->schemaComponent('total'));
+        $page->callAction(TestAction::make('toggleEqualSplit')->schemaComponent('total'));
         $page->callMountedAction()->assertHasNoFormErrors()->assertSee('R$ 50,01')->assertSee('R$ 50,00');
     }
 
@@ -189,7 +289,7 @@ class MonthlyBillsTest extends TestCase
         $this->actingAs($user);
         Filament::setCurrentPanel(Filament::getPanel('app'));
         Filament::setTenant($house);
-        $page = Livewire::test(MonthlyBills::class)->callAction('createBill', data: ['name' => 'Somente setembro', 'due_date' => '2026-10-05', 'total' => '1,00', 'participants' => [$member->id], 'shares' => []]);
+        $page = Livewire::test(MonthlyBills::class)->callAction('createBill', data: ['name' => 'Somente setembro', 'due_date' => '2026-09-05', 'total' => '1,00', 'participants' => [$member->id], 'shares' => []]);
         $page->assertSee('set/2027')->call('selectMonth', '2026-10')->assertDontSee('Somente setembro');
         $page->call('selectMonth', '2026-09')->assertSee('Somente setembro');
     }
