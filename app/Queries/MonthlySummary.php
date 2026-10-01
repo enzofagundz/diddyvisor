@@ -17,6 +17,6 @@ class MonthlySummary
         $byMember = (clone $shares)->selectRaw('membership_id, SUM(amount_cents) AS total, SUM(CASE WHEN is_paid THEN amount_cents ELSE 0 END) AS paid, SUM(CASE WHEN NOT is_paid THEN amount_cents ELSE 0 END) AS pending')->groupBy('membership_id')->get();
         $members = $house->memberships()->with('user')->whereIn('id', $byMember->pluck('membership_id'))->get()->keyBy('id');
 
-        return ['overview' => $overview, 'totals' => $totals, 'upcoming' => (clone $bills)->where('status', '!=', BillStatus::Paid)->orderBy('due_date')->orderBy('id')->limit(5)->get(), 'members' => $byMember->map(fn ($row) => ['name' => $members[$row->membership_id]->label(), 'total' => $row->total, 'paid' => $row->paid, 'pending' => $row->pending])];
+        return ['overview' => $overview, 'totals' => $totals, 'upcoming' => (clone $bills)->where('status', '!=', BillStatus::Paid)->orderBy('due_date')->orderBy('id')->limit(5)->get(), 'members' => $byMember->map(fn ($row) => ['membership_id' => $row->membership_id, 'name' => $members[$row->membership_id]->label(), 'total' => $row->total, 'paid' => $row->paid, 'pending' => $row->pending])];
     }
 }
