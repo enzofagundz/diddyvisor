@@ -30,6 +30,42 @@ class OAuthDiscoveryTest extends TestCase
             ->assertJsonStructure(['client_id']);
     }
 
+    public function test_approving_the_consent_redirects_back_with_an_authorization_code(): void
+    {
+        $this->withoutVite();
+
+        $clientId = $this->postJson('/oauth/register', [
+            'client_name' => 'Hermes Agent',
+            'redirect_uris' => ['http://127.0.0.1:45678/callback'],
+        ])->json('client_id');
+
+        $this->actingAs(User::factory()->create());
+
+        $challenge = rtrim(strtr(base64_encode(hash('sha256', 'verifier', true)), '+/', '-_'), '=');
+
+        $page = $this->get('/oauth/authorize?'.http_build_query([
+            'client_id' => $clientId,
+            'redirect_uri' => 'http://127.0.0.1:45678/callback',
+            'response_type' => 'code',
+            'scope' => 'mcp:use',
+            'state' => 'state-token',
+            'code_challenge' => $challenge,
+            'code_challenge_method' => 'S256',
+        ]))->assertOk();
+
+        preg_match('/name="auth_token" value="([^"]+)"/', $page->getContent(), $matches);
+
+        $this->post('/oauth/authorize', [
+            'auth_token' => $matches[1],
+            'client_id' => $clientId,
+            'state' => 'state-token',
+        ])
+            ->assertRedirect()
+            ->assertRedirectContains('http://127.0.0.1:45678/callback')
+            ->assertRedirectContains('code=')
+            ->assertRedirectContains('state=state-token');
+    }
+
     public function test_login_route_points_to_the_panel_login(): void
     {
         $this->get('/login')->assertRedirect('/app/login');
@@ -68,7 +104,7 @@ class OAuthDiscoveryTest extends TestCase
             'code_challenge_method' => 'S256',
         ]))
             ->assertOk()
-            ->assertSee('Authorize Hermes Agent')
-            ->assertSee('Use MCP server');
+            ->assertSee('Autorizar Hermes Agent')
+            ->assertSee('Usar o MCP do DiddyVisor');
     }
 }
