@@ -47,7 +47,7 @@ final class BillPresenter
     /**
      * @return array<string, mixed>
      */
-    public static function share(BillShare $share): array
+    private static function share(BillShare $share): array
     {
         return [
             'membership_id' => $share->membership_id,
