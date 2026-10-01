@@ -16,6 +16,19 @@ class McpAccessPageTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_shows_the_hermes_onboarding_commands(): void
+    {
+        $this->withoutVite();
+
+        $this->userInAHouse();
+
+        Livewire::test(McpAccess::class)
+            ->assertSee('hermes mcp add diddyvisor')
+            ->assertSee('hermes mcp login diddyvisor')
+            ->assertSee('hermes mcp test diddyvisor')
+            ->assertSee(url('/mcp'));
+    }
+
     public function test_generates_a_personal_token_with_the_mcp_scope(): void
     {
         $this->withoutVite();
