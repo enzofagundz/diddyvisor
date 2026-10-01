@@ -60,23 +60,58 @@ Os testes usam exclusivamente `diddyvisor_testing`, separado do banco de desenvo
 
 ## Servidor MCP (Hermes Agent)
 
-O app embute um servidor MCP local (stdio) para o Hermes Agent operar casas, membros, contas e pagamentos. A identidade é fixa por `DIDDYVISOR_MCP_USER` (e-mail ou id); o usuário precisa ter e-mail verificado e, para criar, alterar ou excluir contas, ser administrador da casa.
+O app embute um servidor MCP em `POST /mcp` com OAuth (Passport) para o Hermes Agent operar casas, membros, contas e pagamentos. Cada pessoa autentica com a própria conta e só enxerga as casas dela; criar, alterar e excluir contas continua exigindo papel de administrador na casa.
+
+### Conectar em produção
+
+Cada pessoa precisa de conta verificada e participação numa casa (convite por e-mail). No Hermes, basta apontar para o endpoint — a autorização abre no navegador na primeira chamada:
+
+```yaml
+mcp_servers:
+  diddyvisor:
+    url: https://<app>.laravel.cloud/mcp
+```
+
+Quem preferir não usar OAuth gera um token pessoal na página **Acesso MCP** do painel (`/app/<casa>/mcp-access`) e usa:
+
+```yaml
+mcp_servers:
+  diddyvisor:
+    url: https://<app>.laravel.cloud/mcp
+    headers:
+      Authorization: "Bearer ${DIDDYVISOR_MCP_TOKEN}"
+```
+
+Revogar o token na mesma página derruba o acesso na hora.
+
+### Desenvolvimento local (stdio)
 
 ```sh
 lerd artisan mcp:start diddyvisor
 ```
 
-Bloco no `~/.hermes/config.yaml` (troque o `cwd` para `/home/enzo/Projects/diddyvisor` depois do merge):
+A identidade local é fixa por `DIDDYVISOR_MCP_USER` (e-mail ou id):
 
 ```yaml
 mcp_servers:
   diddyvisor:
     command: php
     args: ["artisan", "mcp:start", "diddyvisor"]
-    cwd: /home/enzo/.local/share/opencode/worktree/4283620e2b36f09c62fc4d17319276b5736abde6/zealous-quokka
+    cwd: /home/enzo/Projects/diddyvisor
 ```
 
 Tools: `list_houses`, `list_members`, `list_bills`, `get_bill`, `get_monthly_summary`, `create_bill`, `set_share_payment` e `delete_bill`. Valores monetários entram como string pt-BR (`"1234,56"`); a exclusão exige `confirm=true`.
+
+### Deploy
+
+O Laravel Cloud tem filesystem efêmero: `php artisan passport:keys` no comando de deploy não persiste (e cada réplica teria chaves diferentes). Configure as chaves por variável de ambiente, com `\n` no lugar das quebras de linha:
+
+```dotenv
+PASSPORT_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
+PASSPORT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
+```
+
+Gere o par localmente com `php artisan passport:keys`, copie o conteúdo de `storage/oauth-private.key` e `storage/oauth-public.key` e remova as quebras de linha (ou troque-as por `\n`). No deploy, rode `php artisan migrate --force`.
 
 ## Regras principais
 
