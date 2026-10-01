@@ -33,7 +33,7 @@ class DeleteBillTool extends DiddyVisorTool
 
         $this->requireConfirm($request);
 
-        $user = $this->user();
+        $user = $this->user($request);
         $house = $this->house($validated['house_id']);
 
         ($this->deleteBill)($user, $house, $validated['bill_id']);

@@ -30,7 +30,7 @@ class GetBillTool extends DiddyVisorTool
             'bill_id' => ['required', 'integer'],
         ]);
 
-        $user = $this->user();
+        $user = $this->user($request);
         $house = $this->house($validated['house_id']);
 
         Gate::forUser($user)->authorize('view', $house);

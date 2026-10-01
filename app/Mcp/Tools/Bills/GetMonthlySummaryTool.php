@@ -33,7 +33,7 @@ class GetMonthlySummaryTool extends DiddyVisorTool
             'month' => ['required', 'date_format:Y-m'],
         ]);
 
-        $user = $this->user();
+        $user = $this->user($request);
         $house = $this->house($validated['house_id']);
 
         Gate::forUser($user)->authorize('view', $house);

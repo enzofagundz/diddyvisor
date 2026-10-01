@@ -31,7 +31,7 @@ class SetSharePaymentTool extends DiddyVisorTool
             'paid' => ['required', 'boolean'],
         ]);
 
-        $user = $this->user();
+        $user = $this->user($request);
         $house = $this->house($validated['house_id']);
 
         ($this->setSharePayment)(

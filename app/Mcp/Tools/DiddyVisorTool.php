@@ -73,9 +73,9 @@ abstract class DiddyVisorTool extends Tool
 
     abstract protected function execute(Request $request): Response|ResponseFactory;
 
-    protected function user(): User
+    protected function user(Request $request): User
     {
-        return $this->users->resolve();
+        return $this->users->resolve($request->user());
     }
 
     protected function house(int $houseId): House

@@ -3,11 +3,13 @@
 namespace App\Mcp\Support;
 
 use App\Models\User;
+use Illuminate\Contracts\Auth\Authenticatable;
 
 /**
- * Resolve o usuário dono dos dados acessados pelo MCP a partir de
- * config('diddyvisor.mcp.user') — e-mail ou id numérico. Todas as tools
- * operam como esse usuário; nenhuma tool aceita user_id.
+ * Resolve o usuário dono dos dados acessados pelo MCP. No transporte HTTP a
+ * identidade é o usuário autenticado (OAuth/Passport); no stdio local vale o
+ * config('diddyvisor.mcp.user') — e-mail ou id numérico. Todas as tools operam
+ * como esse usuário; nenhuma tool aceita user_id.
  */
 final class McpUserResolver
 {
@@ -15,8 +17,12 @@ final class McpUserResolver
 
     private ?string $resolvedKey = null;
 
-    public function resolve(): User
+    public function resolve(?Authenticatable $user = null): User
     {
+        if ($user instanceof User) {
+            return $user;
+        }
+
         $key = trim((string) config('diddyvisor.mcp.user'));
 
         if ($this->resolved !== null && $this->resolvedKey === $key) {

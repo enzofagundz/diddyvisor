@@ -23,7 +23,7 @@ class ListHousesTool extends DiddyVisorTool
 
     protected function execute(Request $request): Response|ResponseFactory
     {
-        $user = $this->user();
+        $user = $this->user($request);
 
         $memberships = $user->memberships()
             ->with('house')

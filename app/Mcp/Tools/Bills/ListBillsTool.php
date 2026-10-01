@@ -32,7 +32,7 @@ class ListBillsTool extends DiddyVisorTool
             'status' => ['nullable', 'string'],
         ]);
 
-        $user = $this->user();
+        $user = $this->user($request);
         $house = $this->house($validated['house_id']);
 
         Gate::forUser($user)->authorize('view', $house);

@@ -37,7 +37,7 @@ class CreateBillTool extends DiddyVisorTool
             'shares.*.amount' => ['required', 'string'],
         ]);
 
-        $user = $this->user();
+        $user = $this->user($request);
         $house = $this->house($validated['house_id']);
 
         $bill = ($this->saveBill)($user, $house, $validated['month'], [
