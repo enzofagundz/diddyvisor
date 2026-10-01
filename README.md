@@ -58,6 +58,26 @@ lerd artisan test
 
 Os testes usam exclusivamente `diddyvisor_testing`, separado do banco de desenvolvimento. Os testes de concorrência exigem `pcntl`, disponível no PHP 8.5 do lerd.
 
+## Servidor MCP (Hermes Agent)
+
+O app embute um servidor MCP local (stdio) para o Hermes Agent operar casas, membros, contas e pagamentos. A identidade é fixa por `DIDDYVISOR_MCP_USER` (e-mail ou id); o usuário precisa ter e-mail verificado e, para criar, alterar ou excluir contas, ser administrador da casa.
+
+```sh
+lerd artisan mcp:start diddyvisor
+```
+
+Bloco no `~/.hermes/config.yaml` (troque o `cwd` para `/home/enzo/Projects/diddyvisor` depois do merge):
+
+```yaml
+mcp_servers:
+  diddyvisor:
+    command: php
+    args: ["artisan", "mcp:start", "diddyvisor"]
+    cwd: /home/enzo/.local/share/opencode/worktree/4283620e2b36f09c62fc4d17319276b5736abde6/zealous-quokka
+```
+
+Tools: `list_houses`, `list_members`, `list_bills`, `get_bill`, `get_monthly_summary`, `create_bill`, `set_share_payment` e `delete_bill`. Valores monetários entram como string pt-BR (`"1234,56"`); a exclusão exige `confirm=true`.
+
 ## Regras principais
 
 Cada casa possui seus próprios membros e administradores. Membros alteram apenas seu pagamento. Valores são centavos inteiros, e as partes devem fechar o total. Qualquer pagamento marcado impede alterações financeiras e exclusão da conta. Remover um membro preserva suas dívidas e seu histórico.
