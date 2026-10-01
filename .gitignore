@@ -31,3 +31,4 @@ Thumbs.db
 .env.lerd_override
 /.agents/
 /.opencode/
+/.openchamber/
