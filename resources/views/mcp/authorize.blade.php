@@ -16,6 +16,7 @@
             box-shadow: 0 6px 24px rgba(59, 47, 40, .08); padding: 28px 24px;
         }
         .logo { height: 56px; margin: 0 auto 12px; display: block; }
+        .hero { height: 148px; margin: 4px auto 0; display: block; }
         h1 { font-size: 20px; margin: 0 0 6px; text-align: center; }
         .muted { color: #765C4E; font-size: 14px; text-align: center; margin: 0; }
         .section { margin-top: 20px; }
@@ -41,6 +42,8 @@
 
     <h1>Autorizar {{ $client->name }}</h1>
     <p class="muted">Esta aplicação poderá acessar suas casas, contas e pagamentos pelo servidor MCP.</p>
+
+    <img class="hero" src="{{ asset('images/diddy/diddy-agente.png') }}" alt="">
 
     <div class="section">
         <div class="box">

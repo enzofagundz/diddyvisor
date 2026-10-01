@@ -15,7 +15,7 @@
 
         <section class="dv-card" aria-labelledby="mcp-guide-title">
             <div class="dv-card-head">
-                <img class="dv-guide-mascot" src="{{ asset('images/diddyvisor.png') }}" alt="" width="72" height="72">
+                <img class="dv-guide-mascot" src="{{ asset('images/diddy/diddy-agente.png') }}" alt="" width="96" height="96">
                 <div>
                     <h2 id="mcp-guide-title">Conectar um agente (Hermes)</h2>
                     <p>Quatro passos entre a sua conta e o agente.</p>
